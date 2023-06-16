@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 // MongoDB connection URI for the cloud-hosted database
-const uri = 'mongodb+srv://seriz:sE2eJF3XKoAdz4Mh@its.yyugrmm.mongodb.net/test';
+const uri = '';
 
 // Create a MongoDB connection
 const mongoClient = new MongoClient(uri, {
