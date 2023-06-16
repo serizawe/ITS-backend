@@ -6,6 +6,7 @@ const internshipApplicationSchema = new Schema({
   announcement: { type: Schema.Types.ObjectId, ref: 'InternshipAnnouncement', required: true },
   status: { type: String, required: true, default: 'Pending' },
   internship: { type: Schema.Types.ObjectId, ref: 'Internship' },
+  comment: { type: String } 
 });
 
 const InternshipApplication = mongoose.model('InternshipApplication', internshipApplicationSchema);

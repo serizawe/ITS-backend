@@ -7,10 +7,6 @@ const Supervisor = require("../models/supervisor");
 const Student = require("../models/student");
 const crypto = require('crypto');
 
-
-
-
-
 // Login route
 router.post("/auth/login", async (req, res) => {
   const { email, password } = req.body;

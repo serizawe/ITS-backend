@@ -77,6 +77,35 @@ const updateCompanyById = async (req, res) => {
   }
 };
 
+// Controller function for changing the password
+const changePassword = async (req, res) => {
+  const { companyId } = req.params;
+  const { currentPassword, newPassword } = req.body;
+
+  try {
+    // Find the user by ID
+    const company = await Company.findById(companyId);
+
+    // Verify if the current password matches the stored password
+    if (company.password !== currentPassword) {
+      return res.status(400).json({ error: 'Current password is incorrect' });
+    }
+
+    
+    // Update the password
+    company.password = newPassword;
+
+    // Save the updated user
+    await company.save();
+
+    // Return success response
+    res.status(200).json({ message: 'Password changed successfully' });
+  } catch (error) {
+    console.error('Error changing password:', error);
+    res.status(500).json({ error: 'Failed to change password' });
+  }
+};
+
 // Delete a company by ID
 const deleteCompanyById = async (req, res) => {
   try {
@@ -91,10 +120,24 @@ const deleteCompanyById = async (req, res) => {
   }
 };
 
+async function getInternshipsForCompany(req, res) {
+  const companyId = req.params.companyId;
+
+  try {
+    const internships = await Internship.find({ company: companyId }).populate('student').populate('supervisor');
+    res.json(internships);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Failed to retrieve internships for the company' });
+  }
+}
+
 module.exports = {
   createCompany,
   getAllCompanies,
   getCompanyById,
   updateCompanyById,
-  deleteCompanyById
+  changePassword,
+  deleteCompanyById,
+  getInternshipsForCompany
 };

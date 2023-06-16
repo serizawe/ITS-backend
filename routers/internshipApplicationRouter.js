@@ -1,14 +1,27 @@
 const express = require('express');
 const router = express.Router();
-const internshipApplicationController = require('../controllers/internshipApplicationController');
+const {
+  getCompanyApplications,
+  getAllInternshipApplications,
+  createInternshipApplication,
+  deleteInternshipApplication,
+  updateInternshipApplicationStatus,
+  getStudentApplications
+} = require('../controllers/internshipApplicationController');
 
-// GET all internship applications
-router.get('/internship-applications', internshipApplicationController.getAllInternshipApplications);
+// Get all applications for a specific company
+router.get('/company-applications/:companyId', getCompanyApplications);
 
-// GET all internship applications for a specific company
-router.get('/companies/:companyId/applications', internshipApplicationController.getAllInternshipApplications);
+// Get all internship applications
+router.get('/internship-applications', getAllInternshipApplications);
 
-// DELETE an internship application
-router.delete('/internship-applications/:id', internshipApplicationController.deleteInternshipApplication);
+// Create a new internship application
+router.post('/internship-applications/apply', createInternshipApplication);
+
+// Delete an internship application
+router.delete('/internship-applications/:applicationId', deleteInternshipApplication);
+
+// Update the status of an internship application
+router.patch('/internship-applications/:applicationId', updateInternshipApplicationStatus);
 
 module.exports = router;

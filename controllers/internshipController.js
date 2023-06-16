@@ -86,48 +86,46 @@ const deleteInternship = async (req, res) => {
 };
 
 
-// Handle the upload of the evaluation file
-const uploadEvaluation = async (req, res) => {
+// Update internship book status
+const updateInternshipBookStatus = async (internshipId, newStatus) => {
   try {
-    const { id } = req.params;
-    const internship = await Internship.findById(id);
-
-    if (req.file) {
-      const evaluationFile = {
-        filename: req.file.filename,
-        path: req.file.path,
-      };
-      internship.evaluation = evaluationFile;
+    const internship = await Internship.findById(internshipId);
+    if (!internship) {
+      throw new Error('Internship not found');
     }
 
-    const updatedInternship = await internship.save();
+    internship.internshipBookStatus = newStatus;
+    await internship.save();
 
-    res.status(200).json(updatedInternship);
+    return internship;
   } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
+    throw new Error(`Error updating internship book status: ${error.message}`);
   }
 };
 
-// Handle the upload of the internship book file
-const uploadInternshipBook = async (req, res) => {
+const updateInternshipStatus = async (req, res) => {
+  const internshipId = req.params.internshipId;
+  const { status, comment } = req.body;
+
   try {
-    const { id } = req.params;
-    const internship = await Internship.findById(id);
+    const internship = await Internship.findById(internshipId);
 
-    if (req.file) {
-      const internshipBookFile = {
-        filename: req.file.filename,
-        path: req.file.path,
-      };
-      internship.internshipBook = internshipBookFile;
+    if (!internship) {
+      return res.status(404).json({ error: 'Internship not found' });
     }
-    const updatedInternship = await internship.save();
 
-    res.status(200).json(updatedInternship);
+    internship.status = status;
+    internship.comment = comment;
+    await internship.save();
+
+    res.status(200).json(internship);
   } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('Error updating internship status:', error);
+    res.status(500).json({ error: 'An error occurred while updating internship status' });
   }
 };
+
+
 
 
 module.exports = {
@@ -135,6 +133,6 @@ module.exports = {
   getAllInternships,
   getInternshipById,
   deleteInternship,
-  uploadEvaluation,
-  uploadInternshipBook,
+  updateInternshipBookStatus,
+  updateInternshipStatus
 };

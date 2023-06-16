@@ -1,11 +1,11 @@
-const Department = require('../models/department');
+
 const InternshipApplication = require('../models/internshipApplication');
 const Internship = require('../models/internship');
 const Supervisor = require('../models/supervisor');
 
 const registerSupervisor = async (req, res) => {
   try {
-    const { supervisorname, surname, email, password } = req.body;
+    const { name, surname, email, password } = req.body;
 
     // Check if supervisor already exists
     const existingSupervisor = await Supervisor.findOne({ email });
@@ -15,7 +15,7 @@ const registerSupervisor = async (req, res) => {
 
     // Create a new supervisor
     const newSupervisor = new Supervisor({
-      supervisorname,
+      name,
       surname,
       email,
       password
@@ -76,18 +76,46 @@ const updateSupervisor = async (req, res) => {
   }
 };
 
+// Controller function for changing the password
+const changePassword = async (req, res) => {
+  const { supervisorId } = req.params;
+  const { currentPassword, newPassword } = req.body;
+
+  try {
+    // Find the user by ID
+    const supervisor = await Supervisor.findById(supervisorId);
+
+    // Verify if the current password matches the stored password
+    if (supervisor.password !== currentPassword) {
+      return res.status(400).json({ error: 'Current password is incorrect' });
+    }
+
+    // Update the password
+    supervisor.password = newPassword;
+
+    // Save the updated user
+    await supervisor.save();
+
+    // Return success response
+    res.status(200).json({ message: 'Password changed successfully' });
+  } catch (error) {
+    console.error('Error changing password:', error);
+    res.status(500).json({ error: 'Failed to change password' });
+  }
+};
+
 // Get all the students who are in the supervisors' department
 const getDepartmentStudents = async (req, res) => {
   const supervisorId = req.params.supervisorId;
 
   try {
-    const department = await Department.findOne({ supervisor: supervisorId }).populate('students');
-
-    if (!department) {
-      return res.status(404).json({ error: 'Department not found' });
+    const supervisor = await Supervisor.findById(supervisorId);
+    if (!supervisor) {
+      return res.status(404).json({ error: 'Supervisor not found' });
     }
 
-    const students = department.students;
+    const departmentName = supervisor.departmentName;
+    const students = await Student.find({ departmentName });
 
     res.status(200).json(students);
   } catch (error) {
@@ -95,6 +123,7 @@ const getDepartmentStudents = async (req, res) => {
     res.status(500).json({ error: 'An error occurred while fetching department students' });
   }
 };
+
 
 
 const updateInternshipApplicationStatus = async (req, res) => {
@@ -119,48 +148,61 @@ const updateInternshipApplicationStatus = async (req, res) => {
   }
 };
 
-const updateInternshipStatus = async (req, res) => {
-  const internshipId = req.params.internshipId;
-  const { status, comment } = req.body;
 
+
+const getPendingApplications = async (req, res) => {
   try {
-    const internship = await Internship.findById(internshipId);
+    const { supervisorId } = req.params;
 
-    if (!internship) {
-      return res.status(404).json({ error: 'Internship not found' });
+    // Find the supervisor by ID
+    const supervisor = await Supervisor.findById(supervisorId);
+    if (!supervisor) {
+      return res.status(404).json({ message: 'Supervisor not found' });
     }
 
-    internship.status = status;
-    internship.comment = comment;
-    await internship.save();
+    // Get the departmentName from the supervisor
+    const departmentName = supervisor.departmentName;
 
-    res.status(200).json(internship);
+    // Find the students with the same departmentName
+    const students = await Student.find({ departmentName });
+
+    // Find the applications with the status 'Waiting for supervisor approval' from the students
+    const applications = await InternshipApplication.find({
+      student: { $in: students.map(student => student._id) },
+      status: "Waiting for supervisor approval"
+    });
+
+    res.status(200).json(applications);
   } catch (error) {
-    console.error('Error updating internship status:', error);
-    res.status(500).json({ error: 'An error occurred while updating internship status' });
+    console.error('Error retrieving pending applications:', error);
+    res.status(500).json({ error: 'Failed to retrieve pending applications' });
   }
 };
+
+
+
+
 
 const getInternshipsBySupervisor = async (req, res) => {
   try {
     const supervisorId = req.params.supervisorId;
-    
+
     // Find the supervisor by ID
     const supervisor = await Supervisor.findById(supervisorId).populate('department');
-    
+
     if (!supervisor) {
       return res.status(404).json({ message: 'Supervisor not found' });
     }
-    
-    // Get the department ID
-    const departmentId = supervisor.department._id;
-    
-    // Find internships with matching department ID
-    const internships = await Internship.find({ 'student.department': departmentId })
+
+    // Get the department name
+    const departmentName = supervisor.department.departmentName;
+
+    // Find internships with matching department name
+    const internships = await Internship.find({ 'student.departmentName': departmentName })
       .populate('student')
       .populate('company')
       .populate('supervisor');
-    
+
     return res.json({ internships });
   } catch (error) {
     console.error(error);
@@ -169,12 +211,14 @@ const getInternshipsBySupervisor = async (req, res) => {
 };
 
 
+
 module.exports = {
   registerSupervisor,
   getSupervisorById,
   getInternshipsBySupervisor,
   updateSupervisor,  
+  changePassword,
   getDepartmentStudents,
   updateInternshipApplicationStatus,
-  updateInternshipStatus,
+  getPendingApplications
 };

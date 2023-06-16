@@ -5,7 +5,7 @@ const InternshipApplication = require('../models/internshipApplication');
 // Create a new student
 const createStudent = async (req, res) => {
   try {
-    const { studentNumber, name, surname, classYear, gpa, email, phone, address, password, department } = req.body;
+    const { studentNumber, name, surname, classYear, gpa, email, phone, address, password, departmentName } = req.body;
     // Check if student already exists
     const existingStudent = await Student.findOne({ email });
     if (existingStudent) {
@@ -22,7 +22,7 @@ const createStudent = async (req, res) => {
       phone,
       address,
       password,
-      department,
+      departmentName,
       internshipExperiences: [],
       internshipApplications: []
     });
@@ -53,6 +53,34 @@ const getStudentById = async (req, res) => {
     res.json(student);
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+};
+
+// Controller function for changing the password
+const changePassword = async (req, res) => {
+  const { studentId } = req.params;
+  const { currentPassword, newPassword } = req.body;
+
+  try {
+    // Find the user by ID
+    const student = await Student.findById(studentId);
+
+    // Verify if the current password matches the stored password
+    if (student.password !== currentPassword) {
+      return res.status(400).json({ error: 'Current password is incorrect' });
+    }
+
+    // Update the password
+    student.password = newPassword;
+
+    // Save the updated user
+    await student.save();
+
+    // Return success response
+    res.status(200).json({ message: 'Password changed successfully' });
+  } catch (error) {
+    console.error('Error changing password:', error);
+    res.status(500).json({ error: 'Failed to change password' });
   }
 };
 
@@ -95,6 +123,18 @@ const deleteStudent = async (req, res) => {
     res.json({ message: 'Student deleted' });
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+};
+
+// Get all internship announcements
+const getAllAnnouncements = async (req, res) => {
+  try {
+    const announcements = await InternshipAnnouncement.find();
+
+    res.status(200).json(announcements);
+  } catch (error) {
+    console.error('Error getting internship announcements:', error);
+    res.status(500).json({ error: 'An error occurred while fetching internship announcements' });
   }
 };
 
@@ -160,7 +200,7 @@ const Internship = require('../models/internship');
 // Get internship details for a student
 const getInternshipDetails = async (req, res) => {
   try {
-    const { studentId, internshipId } = req.params;
+    const { studentId } = req.params;
 
     // Check if the student exists
     const student = await Student.findById(studentId);
@@ -168,25 +208,21 @@ const getInternshipDetails = async (req, res) => {
       return res.status(404).json({ message: 'Student not found' });
     }
 
-    // Get the internship
-    const internship = await Internship.findOne({ _id: internshipId, student: studentId })
-      .populate('company', 'companyName sector location')
-      .populate('supervisor', 'name surname');
+    // Get all internships for the student
+    const internships = await Internship.find({ student: studentId })
+      .populate('company', 'companyName sector location');
 
-    if (!internship) {
-      return res.status(404).json({ message: 'Internship not found' });
-    }
-
-    // Create a modified version of the internship data without the evaluation field
-    const internshipData = {
-      student: internship.student,
-      company: internship.company,
-      startDate: internship.startDate,
-      endDate: internship.endDate,
-      supervisor: internship.supervisor,
-      internshipBook: internship.internshipBook,
-      status: internship.status
-    };
+    // Create an array of modified internship data without the supervisor field
+    const internshipData = internships.map((internship) => {
+      return {
+        student: internship.student,
+        company: internship.company,
+        startDate: internship.startDate,
+        endDate: internship.endDate,
+        internshipBook: internship.internshipBook,
+        status: internship.status
+      };
+    });
 
     res.status(200).json({ data: internshipData });
   } catch (error) {
@@ -194,8 +230,22 @@ const getInternshipDetails = async (req, res) => {
   }
 };
 
-module.exports = {
-  getInternshipDetails
+
+
+// Get all internship applications for a specific student
+const getStudentApplications = async (req, res) => {
+  const studentId = req.params.studentId;
+
+  try {
+    const applications = await InternshipApplication.find({ student: studentId })
+      .populate('student', 'name') // Populate the 'student' field with the 'name' property
+      .populate('announcement', 'title') // Populate the 'announcement' field with the 'title' property
+      .populate('internship', 'name'); // Populate the 'internship' field with the 'name' property
+    res.status(200).json(applications);
+  } catch (error) {
+    console.error('Error getting student applications:', error);
+    res.status(500).json({ error: 'An error occurred while fetching student applications' });
+  }
 };
 
 
@@ -207,7 +257,10 @@ module.exports = {
   getStudentById,
   updateStudent,
   deleteStudent,
+  changePassword,
   createInternshipApplication,
   deleteInternshipApplication,
-  getInternshipDetails
+  getInternshipDetails,
+  getAllAnnouncements,
+  getStudentApplications
 };

@@ -7,8 +7,7 @@ const internshipSchema = new mongoose.Schema({
   startDate: { type: Date, required: true },
   endDate: { type: Date, required: true },
   supervisor: { type: mongoose.Schema.Types.ObjectId, ref: 'InternshipSupervisor' },
-  evaluation: { type: String },
-  internshipBook: { type: String },
+  internshipBookStatus: { type: String },
   status: { type: String },
 });
 

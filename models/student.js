@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
+const bcrypt = require('bcrypt');
 
 const studentSchema = new mongoose.Schema({
   studentNumber: { type: String, required: true },
@@ -11,7 +12,7 @@ const studentSchema = new mongoose.Schema({
   phone: { type: String, required: true },
   address: { type: String, required: true },
   password: { type: String, required: true },
-  department: { type: mongoose.Schema.Types.ObjectId, ref: 'Department', required: true },
+  departmentName: { type: String, required: true }, 
   internshipExperiences: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Internship' }],
   internshipApplications: [{ type: mongoose.Schema.Types.ObjectId, ref: 'InternshipApplication' }]
 });

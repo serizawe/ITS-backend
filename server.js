@@ -2,11 +2,14 @@ const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
-const login = require ("./routers/login");
-const companyRegister = require("./routers/companyRegister")
-const internshipAnnouncementRouter = require("./routers/internshipAnnouncementRouter")
-const internshipApplicationRouter = require("./routers/internshipApplicationRouter")
-const internshipsRouter = require("./routers/companyRegister")
+const authRouter = require("./routers/login"); 
+const companyRouter = require("./routers/companyRouter");
+const internshipAnnouncementRouter = require("./routers/internshipAnnouncementRouter");
+const internshipApplicationRouter = require("./routers/internshipApplicationRouter");
+const internshipRouter = require("./routers/internshipsRouter");
+const studentRouter = require("./routers/studentRouter");
+const supervisorRouter = require("./routers/supervisorRouter");
+const fileRouter = require("./routers/fileRouter");
 dotenv.config();
 
 const app = express();
@@ -31,12 +34,14 @@ app.get("/", (req, res) => {
   res.send("Server is up and running");
 });
 
-
-app.use('/api', internshipApplicationRouter);
-app.use('/api', internshipAnnouncementRouter);
-app.use('/api', internshipsRouter);
-app.use("/api/register" ,companyRegister)
-app.use("/api" ,login)
+app.use("/api/", authRouter);
+app.use("/api/", companyRouter);
+app.use("/api/", internshipAnnouncementRouter);
+app.use("/api/", internshipApplicationRouter);
+app.use("/api/", internshipRouter);
+app.use("/api/", studentRouter);
+app.use("/api/", supervisorRouter);
+app.use("/api/", supervisorRouter);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port: ${PORT}`);

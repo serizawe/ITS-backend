@@ -2,9 +2,6 @@ const mongoose = require('mongoose');
 
 const internshipAnnouncementSchema = new mongoose.Schema({
   company: { type: mongoose.Schema.Types.ObjectId, ref: 'Company' },
-  sector: { type: String, required: true },
-  location: { type: String, required: true },
-  contactNumber: { type: String, required: true },
   applications: [{ type: mongoose.Schema.Types.ObjectId, ref: 'InternshipApplication' }],
   internshipName: { type: String, required: true },
   internshipType: { type: String, required: true }, 

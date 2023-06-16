@@ -1,18 +1,17 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
+const bcrypt = require('bcrypt');
 
 const internshipSupervisorSchema = new mongoose.Schema({
   name: { type: String, required: true },
   surname: { type: String, required: true },
   email: { type: String, required: true },
-  phone: { type: String, required: true },
-  address: { type: String, required: true },
   password: { type: String, required: true },
-  department: { type: mongoose.Schema.Types.ObjectId, ref: 'Department', required: true }
+  departmentName: { type: String, required: true }, // New departmentName field
 });
 internshipSupervisorSchema.pre('save', async function (next) {
   const supervisor = this;
-  if (!super.isModified('password')) {
+  if (!supervisor.isModified('password')) {
     return next();
   }
   try {

@@ -1,5 +1,7 @@
 const InternshipApplication = require('../models/internshipApplication');
 const InternshipAnnouncement = require('../models/internshipAnnouncement');
+const Student = require('../models/student');
+
 
 //Get all applications for a specific company
 const getCompanyApplications = async (req, res) => {
@@ -22,7 +24,6 @@ const getCompanyApplications = async (req, res) => {
   }
 };
 
-// Create an internship application
 const createInternshipApplication = async (req, res) => {
   try {
     const { studentId, announcementId } = req.body;
@@ -34,6 +35,15 @@ const createInternshipApplication = async (req, res) => {
       return res.status(404).json({ message: 'Student or Announcement not found' });
     }
 
+    // Check if the student has already applied to the announcement
+    const existingApplication = await InternshipApplication.findOne({
+      student: studentId,
+      announcement: announcementId
+    });
+    if (existingApplication) {
+      return res.status(400).json({ message: 'You have already applied to this announcement' });
+    }
+
     // Create the internship application
     const internshipApplication = new InternshipApplication({
       student: studentId,
@@ -43,17 +53,19 @@ const createInternshipApplication = async (req, res) => {
     });
 
     // Add the internship application to the announcement's applications array
-    announcement.applications.push(internshipApplication._id);
+    announcement.applications.push(internshipApplication);
 
     // Save the internship application and update the announcement
-    await internshipApplication.save();
-    await announcement.save();
+    await Promise.all([internshipApplication.save(), announcement.save()]);
 
     res.status(201).json(internshipApplication);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
+
+
+
 
 // Delete an internship application
 const deleteInternshipApplication = async (req, res) => {
@@ -81,11 +93,11 @@ const deleteInternshipApplication = async (req, res) => {
 };
 
 
-// Update an internship application
-const updateInternshipApplication = async (req, res) => {
+const updateInternshipApplicationStatus = async (req, res) => {
   try {
+
     const { applicationId } = req.params;
-    const updateData = req.body;
+    const { status } = req.body;
 
     // Check if the internship application exists
     const internshipApplication = await InternshipApplication.findById(applicationId);
@@ -93,18 +105,16 @@ const updateInternshipApplication = async (req, res) => {
       return res.status(404).json({ message: 'Internship Application not found' });
     }
 
-    // Update the internship application
-    const updatedApplication = await InternshipApplication.findByIdAndUpdate(
-      applicationId,
-      updateData,
-      { new: true }
-    );
+    // Update the status field of the internship application
+    internshipApplication.status = status;
+    await internshipApplication.save();
 
-    res.status(200).json({ message: 'Internship Application updated successfully', data: updatedApplication });
+    res.status(200).json({ message: 'Internship Application status updated successfully', data: internshipApplication });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
+
 
 // Get all internship applications
 const getAllInternshipApplications = async (req, res) => {
@@ -126,5 +136,5 @@ module.exports = {
   getAllInternshipApplications,
   createInternshipApplication,
   deleteInternshipApplication,
-  updateInternshipApplication
+  updateInternshipApplicationStatus
 };

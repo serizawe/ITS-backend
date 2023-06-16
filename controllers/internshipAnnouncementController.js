@@ -1,48 +1,59 @@
 const InternshipAnnouncement = require('../models/internshipAnnouncement');
+const InternshipApplication = require('../models/internshipApplication');
 
-// Create a new internship announcement
+// Create a new internship announcement 
 const createInternshipAnnouncement = async (req, res) => {
   try {
     const {
-      company,
-      sector,
-      location,
-      contactNumber,
-      applications,
-      internshipName, 
-      internshipType, 
-      internshipProgram, 
-      insuranceSituation, 
-      dateRange1, 
-      dateRange2, 
-      departmentNames, 
-      studentDepartmentNames, 
-    } = req.body;
-
-    const newAnnouncement = new InternshipAnnouncement({
-      company,
-      sector,
-      location,
-      contactNumber,
-      applications,
       internshipName,
       internshipType,
       internshipProgram,
       insuranceSituation,
-      dateRange1,
-      dateRange2,
-      departmentNames,
-      studentDepartmentNames,
+      RangePicker1,
+      RangePicker2,
+      departmentName,
+      studentDepartmentName,
+    } = req.body;
+
+    const companyId = req.params.companyId; // Extract the companyId from the request parameters
+
+    const newAnnouncement = new InternshipAnnouncement({
+      company: companyId,
+      internshipName,
+      internshipType,
+      internshipProgram,
+      insuranceSituation,
+      dateRange1: new Date(RangePicker1[0]), 
+      dateRange2: new Date(RangePicker2[0]), 
+      departmentNames: departmentName,
+      studentDepartmentNames: studentDepartmentName,
     });
 
     const savedAnnouncement = await newAnnouncement.save();
     res.status(201).json(savedAnnouncement);
   } catch (error) {
+    console.error('Error creating announcement:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
 
 // Get all internship announcements
+const getAllInternshipAnnouncements = async (req, res) => {
+  try {
+    const announcements = await InternshipAnnouncement.find()
+      .populate("company", "companyName sector location") // Populate the company field with specified fields
+      .exec();
+
+    res.status(200).json(announcements);
+  } catch (error) {
+    console.error('Error getting internship announcements:', error);
+    res.status(500).json({ error: 'An error occurred while fetching internship announcements' });
+  }
+};
+
+
+
+// Get all internship announcements for a company
 const getCompanyAnnouncements = async (req, res) => {
   const companyId = req.params.companyId;
 
@@ -73,7 +84,21 @@ const deleteInternshipAnnouncement = async (req, res) => {
   }
 };
 
+// Get internship applications for a specific announcement and populate student data
+const getAnnouncementApplications = async (req, res) => {
+  const announcementId = req.params.announcementId;
 
+  try {
+    const applications = await InternshipApplication.find({ announcement: announcementId })
+      .populate('student') // Populate the 'student' field with all student data
+      .exec();
+
+    res.status(200).json(applications);
+  } catch (error) {
+    console.error('Error getting announcement applications:', error);
+    res.status(500).json({ error: 'An error occurred while fetching announcement applications' });
+  }
+};
 
 // Update an internship announcement
 const updateInternshipAnnouncement = async (req, res) => {
@@ -132,4 +157,6 @@ module.exports = {
   createInternshipAnnouncement,
   updateInternshipAnnouncement,
   deleteInternshipAnnouncement,
+  getAnnouncementApplications,
+  getAllInternshipAnnouncements
 };
