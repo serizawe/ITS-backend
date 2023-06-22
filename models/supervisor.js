@@ -7,7 +7,7 @@ const internshipSupervisorSchema = new mongoose.Schema({
   surname: { type: String, required: true },
   email: { type: String, required: true },
   password: { type: String, required: true },
-  departmentName: { type: String, required: true }, // New departmentName field
+  departmentName: { type: String, required: true },
 });
 internshipSupervisorSchema.pre('save', async function (next) {
   const supervisor = this;

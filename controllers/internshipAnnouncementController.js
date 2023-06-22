@@ -1,5 +1,6 @@
 const InternshipAnnouncement = require('../models/internshipAnnouncement');
 const InternshipApplication = require('../models/internshipApplication');
+const company = require('../models/company');
 
 // Create a new internship announcement 
 const createInternshipAnnouncement = async (req, res) => {
@@ -43,7 +44,6 @@ const getAllInternshipAnnouncements = async (req, res) => {
     const announcements = await InternshipAnnouncement.find()
       .populate("company", "companyName sector location") // Populate the company field with specified fields
       .exec();
-
     res.status(200).json(announcements);
   } catch (error) {
     console.error('Error getting internship announcements:', error);
@@ -84,13 +84,15 @@ const deleteInternshipAnnouncement = async (req, res) => {
   }
 };
 
-// Get internship applications for a specific announcement and populate student data
 const getAnnouncementApplications = async (req, res) => {
   const announcementId = req.params.announcementId;
 
   try {
-    const applications = await InternshipApplication.find({ announcement: announcementId })
-      .populate('student') // Populate the 'student' field with all student data
+    const applications = await InternshipApplication.find({ announcement: announcementId, status: 'Pending' })
+      .populate({
+        path: 'student',
+        select: 'name surname gpa classYear departmentName email phone address' // Specify the fields you want to populate
+      })
       .exec();
 
     res.status(200).json(applications);
@@ -99,6 +101,8 @@ const getAnnouncementApplications = async (req, res) => {
     res.status(500).json({ error: 'An error occurred while fetching announcement applications' });
   }
 };
+
+
 
 // Update an internship announcement
 const updateInternshipAnnouncement = async (req, res) => {

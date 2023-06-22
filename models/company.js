@@ -8,9 +8,9 @@ const Schema = mongoose.Schema;
   location: { type: String },
   contactNumber: { type: String, required: true },
   password: { type: String, required: true },
-  username: { type: String, required: true },
   email: { type: String, required: true },
   workAreas: [{ type: String }],
+  employeeNum: { type: String},
   internshipAnnouncements: [{ type: mongoose.Schema.Types.ObjectId, ref: 'InternshipAnnouncement' }],
   internshipApplications: [{ type: mongoose.Schema.Types.ObjectId, ref: 'InternshipApplication' }]
 });

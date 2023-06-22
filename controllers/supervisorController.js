@@ -2,10 +2,13 @@
 const InternshipApplication = require('../models/internshipApplication');
 const Internship = require('../models/internship');
 const Supervisor = require('../models/supervisor');
+const Student = require('../models/student');
+const InternshipAnnouncement = require('../models/internshipAnnouncement');
+const bcrypt = require('bcrypt');
 
 const registerSupervisor = async (req, res) => {
   try {
-    const { name, surname, email, password } = req.body;
+    const { name, surname, email, password ,departmentName} = req.body;
 
     // Check if supervisor already exists
     const existingSupervisor = await Supervisor.findOne({ email });
@@ -18,7 +21,8 @@ const registerSupervisor = async (req, res) => {
       name,
       surname,
       email,
-      password
+      password,
+      departmentName
     });
 
     // Save the supervisor to the database
@@ -30,13 +34,12 @@ const registerSupervisor = async (req, res) => {
     res.status(500).json({ error: 'An error occurred while registering supervisor' });
   }
 };
-
-// Get a specific supervisor by ID
+ 
+// Get a supervisor by id
 const getSupervisorById = async (req, res) => {
   try {
     const supervisorId = req.params.id;
-    const supervisor = await Supervisor.findById(supervisorId);
-    
+    const supervisor = await Supervisor.findById(supervisorId).select('-password');
     if (supervisor) {
       res.status(200).json(supervisor);
     } else {
@@ -47,6 +50,7 @@ const getSupervisorById = async (req, res) => {
     res.status(500).json({ error: 'An error occurred while fetching supervisor' });
   }
 };
+
 
 // Update a supervisor
 const updateSupervisor = async (req, res) => {
@@ -82,18 +86,20 @@ const changePassword = async (req, res) => {
   const { currentPassword, newPassword } = req.body;
 
   try {
-    // Find the user by ID
+    // Find the supervisor by ID
     const supervisor = await Supervisor.findById(supervisorId);
 
-    // Verify if the current password matches the stored password
-    if (supervisor.password !== currentPassword) {
+    // Check if the current password is correct
+    const passwordMatch = await bcrypt.compare(currentPassword, supervisor.password);
+    if (!passwordMatch) {
       return res.status(400).json({ error: 'Current password is incorrect' });
     }
+
 
     // Update the password
     supervisor.password = newPassword;
 
-    // Save the updated user
+    // Save the updated supervisor
     await supervisor.save();
 
     // Return success response
@@ -103,6 +109,7 @@ const changePassword = async (req, res) => {
     res.status(500).json({ error: 'Failed to change password' });
   }
 };
+
 
 // Get all the students who are in the supervisors' department
 const getDepartmentStudents = async (req, res) => {
@@ -166,13 +173,54 @@ const getPendingApplications = async (req, res) => {
     // Find the students with the same departmentName
     const students = await Student.find({ departmentName });
 
-    // Find the applications with the status 'Waiting for supervisor approval' from the students
+    // Find the applications with the status 'Waiting for supervisor approval' or 'Approved' from the students
     const applications = await InternshipApplication.find({
       student: { $in: students.map(student => student._id) },
-      status: "Waiting for supervisor approval"
+       status: { $in: ['Waiting for supervisor approval', 'Approved'] }
+    })
+      .populate({
+        path: 'student',
+        select: 'name surname gpa classYear departmentName email phone address'
+      })
+      .populate({
+        path: 'announcement',
+        populate: {
+          path: 'company',
+          select: 'companyName sector location contactNumber employeeNum'
+        },
+        select: 'internshipName internshipType internshipProgram insuranceSituation dateRange1 dateRange2 departmentNames studentDepartmentNames'
+      })
+      .exec();
+
+    const formattedApplications = applications.map(application => {
+      return {
+        id: application._id,
+        name: application.student.name,
+        surname: application.student.surname,
+        status: application.status,
+        gpa: application.student.gpa,
+        classYear: application.student.classYear,
+        departmentName: application.student.departmentName,
+        email: application.student.email,
+        phone: application.student.phone,
+        address: application.student.address,
+        companyName: application.announcement.company.companyName,
+        sector: application.announcement.company.sector,
+        location: application.announcement.company.location,
+        employeeNum: application.announcement.company.employeeNum,
+        contactNumber: application.announcement.company.contactNumber,
+        internshipName: application.announcement.internshipName,
+        internshipType: application.announcement.internshipType,
+        internshipProgram: application.announcement.internshipProgram,
+        insuranceSituation: application.announcement.insuranceSituation,
+        dateRange1: application.announcement.dateRange1,
+        dateRange2: application.announcement.dateRange2,
+        departmentNames: application.announcement.departmentNames,
+        studentDepartmentNames: application.announcement.studentDepartmentNames
+      };
     });
 
-    res.status(200).json(applications);
+    res.status(200).json(formattedApplications);
   } catch (error) {
     console.error('Error retrieving pending applications:', error);
     res.status(500).json({ error: 'Failed to retrieve pending applications' });
@@ -183,32 +231,65 @@ const getPendingApplications = async (req, res) => {
 
 
 
-const getInternshipsBySupervisor = async (req, res) => {
+
+
+ const getInternshipsBySupervisor = async (req, res) => {
   try {
     const supervisorId = req.params.supervisorId;
 
     // Find the supervisor by ID
-    const supervisor = await Supervisor.findById(supervisorId).populate('department');
+    const supervisor = await Supervisor.findById(supervisorId);
 
     if (!supervisor) {
       return res.status(404).json({ message: 'Supervisor not found' });
     }
 
     // Get the department name
-    const departmentName = supervisor.department.departmentName;
+    const departmentName = supervisor.departmentName;
 
     // Find internships with matching department name
-    const internships = await Internship.find({ 'student.departmentName': departmentName })
-      .populate('student')
-      .populate('company')
-      .populate('supervisor');
+    const internships = await Internship.find()
+      .populate({
+        path: 'student',
+        select: 'name surname',
+        match: { departmentName: departmentName },
+      })
+      .populate({
+        path: 'company',
+        select: 'companyName',
+      })
+      .select("startDate endDate internshipBook evaluationForm status internshipBookStatus")
+      .lean();
 
-    return res.json({ internships });
+    // Filter out internships where student's departmentName doesn't match
+    const filteredInternships = internships.filter(
+      (internship) => internship.student !== null
+    );
+
+    const responseData = filteredInternships.map((internship) => ({
+  key: internship._id, 
+  name: `${internship.student.name} ${internship.student.surname}`,
+  companyName: internship.company.companyName,
+  startDate: internship.startDate,
+  endDate: internship.endDate,
+  status: internship.status,
+  internshipBookStatus: internship.internshipBookStatus, 
+  internshipBook: internship.internshipBook, 
+  evaluationForm: internship.evaluationForm, 
+}));
+
+
+    return res.json({ internships: responseData });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Server error' });
   }
 };
+
+
+
+
+
 
 
 

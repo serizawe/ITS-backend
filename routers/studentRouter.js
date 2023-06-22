@@ -30,14 +30,14 @@ router.put('/students/:id', updateStudent);
 router.delete('/students/:id', deleteStudent);
 
 // Change student's password
-router.put('/students/:studentId/change-password', changePassword);
+router.patch('/students/:studentId/change-password', changePassword);
 
 
 // Delete an internship application
 router.delete('/students/internship-applications/:applicationId', deleteInternshipApplication);
 
 // Get internship details for a student
-router.get('/students/:studentId/internships/:internshipId', getInternshipDetails);
+router.get('/students/:studentId/internships', getInternshipDetails);
 
 // Get all internship applications for a specific student
 router.get('/students/:studentId/applications', getStudentApplications);

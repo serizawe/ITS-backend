@@ -87,7 +87,7 @@ const deleteInternship = async (req, res) => {
 
 
 // Update internship book status
-const updateInternshipBookStatus = async (internshipId, newStatus) => {
+const updateInternshipBookStatus = async (internshipId, newStatus, rejectionReason) => {
   try {
     const internship = await Internship.findById(internshipId);
     if (!internship) {
@@ -95,8 +95,11 @@ const updateInternshipBookStatus = async (internshipId, newStatus) => {
     }
 
     internship.internshipBookStatus = newStatus;
-    await internship.save();
+    if (rejectionReason) {
+      internship.bookComment = rejectionReason;
+    }
 
+    await internship.save();
     return internship;
   } catch (error) {
     throw new Error(`Error updating internship book status: ${error.message}`);
@@ -106,7 +109,6 @@ const updateInternshipBookStatus = async (internshipId, newStatus) => {
 const updateInternshipStatus = async (req, res) => {
   const internshipId = req.params.internshipId;
   const { status, comment } = req.body;
-
   try {
     const internship = await Internship.findById(internshipId);
 

@@ -1,6 +1,7 @@
 const Student = require('../models/student');
 const InternshipApplication = require('../models/internshipApplication');
-
+const bcrypt = require('bcrypt');
+const Internship = require('../models/internship');
 
 // Create a new student
 const createStudent = async (req, res) => {
@@ -65,8 +66,9 @@ const changePassword = async (req, res) => {
     // Find the user by ID
     const student = await Student.findById(studentId);
 
-    // Verify if the current password matches the stored password
-    if (student.password !== currentPassword) {
+    // Verify if the current password matches the stored password using bcrypt
+    const passwordMatch = await bcrypt.compare(currentPassword, student.password);
+    if (!passwordMatch) {
       return res.status(400).json({ error: 'Current password is incorrect' });
     }
 
@@ -83,6 +85,7 @@ const changePassword = async (req, res) => {
     res.status(500).json({ error: 'Failed to change password' });
   }
 };
+
 
 // Update a student
 const updateStudent = async (req, res) => {
@@ -130,7 +133,6 @@ const deleteStudent = async (req, res) => {
 const getAllAnnouncements = async (req, res) => {
   try {
     const announcements = await InternshipAnnouncement.find();
-
     res.status(200).json(announcements);
   } catch (error) {
     console.error('Error getting internship announcements:', error);
@@ -195,9 +197,8 @@ const deleteInternshipApplication = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-const Internship = require('../models/internship');
 
-// Get internship details for a student
+
 const getInternshipDetails = async (req, res) => {
   try {
     const { studentId } = req.params;
@@ -210,21 +211,24 @@ const getInternshipDetails = async (req, res) => {
 
     // Get all internships for the student
     const internships = await Internship.find({ student: studentId })
-      .populate('company', 'companyName sector location');
+      .populate('company', 'companyName');
 
-    // Create an array of modified internship data without the supervisor field
-    const internshipData = internships.map((internship) => {
-      return {
-        student: internship.student,
-        company: internship.company,
-        startDate: internship.startDate,
-        endDate: internship.endDate,
-        internshipBook: internship.internshipBook,
-        status: internship.status
-      };
-    });
+    // Modify the internships data for frontend display
+    const internshipData = internships.map((internship) => ({
+      id: internship._id,
+      company: {
+        companyId: internship.company._id,
+        companyName: internship.company.companyName,
+      },
+      startDate: internship.startDate,
+      endDate: internship.endDate,
+      internshipBook: internship.internshipBook,
+      bookStatus:internship.internshipBookStatus,
+      bookComment: internship.bookComment, 
+      status: internship.status,
+    }));
 
-    res.status(200).json({ data: internshipData });
+    res.status(200).json(internshipData);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -232,21 +236,31 @@ const getInternshipDetails = async (req, res) => {
 
 
 
-// Get all internship applications for a specific student
+
 const getStudentApplications = async (req, res) => {
   const studentId = req.params.studentId;
 
   try {
     const applications = await InternshipApplication.find({ student: studentId })
-      .populate('student', 'name') // Populate the 'student' field with the 'name' property
-      .populate('announcement', 'title') // Populate the 'announcement' field with the 'title' property
-      .populate('internship', 'name'); // Populate the 'internship' field with the 'name' property
+      .populate('student', 'name')
+      .populate({
+        path: 'announcement',
+        populate: {
+          path: 'company',
+          select: 'companyName'
+        }
+      })
+      .select('status')
+      .select('_id');
+
     res.status(200).json(applications);
   } catch (error) {
     console.error('Error getting student applications:', error);
     res.status(500).json({ error: 'An error occurred while fetching student applications' });
   }
 };
+
+
 
 
 

@@ -24,7 +24,7 @@ router.get('/supervisors/:supervisorId/internships', getInternshipsBySupervisor)
 router.put('/supervisors/:id', updateSupervisor);
 
 // Change supervisor password
-router.put('/supervisors/:supervisorId/change-password', changePassword);
+router.patch('/supervisors/:supervisorId/change-password', changePassword);
 
 // Get department students
 router.get('/supervisors/:supervisorId/students', getDepartmentStudents);

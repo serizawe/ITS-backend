@@ -9,7 +9,7 @@ const internshipApplicationRouter = require("./routers/internshipApplicationRout
 const internshipRouter = require("./routers/internshipsRouter");
 const studentRouter = require("./routers/studentRouter");
 const supervisorRouter = require("./routers/supervisorRouter");
-const fileRouter = require("./routers/fileRouter");
+
 dotenv.config();
 
 const app = express();

@@ -27,7 +27,7 @@ const getCompanyApplications = async (req, res) => {
 const createInternshipApplication = async (req, res) => {
   try {
     const { studentId, announcementId } = req.body;
-
+    console.log(studentId,announcementId);
     // Check if the student and announcement exist
     const student = await Student.findById(studentId);
     const announcement = await InternshipAnnouncement.findById(announcementId);
@@ -78,7 +78,7 @@ const deleteInternshipApplication = async (req, res) => {
       return res.status(404).json({ message: 'Internship Application not found' });
     }
 
-    // Remove the internship application from the announcement's applications array
+    // Remove the internship application from the announcement's applications 
     const announcement = await InternshipAnnouncement.findById(internshipApplication.announcement);
     announcement.applications = announcement.applications.filter(appId => appId.toString() !== applicationId);
     await announcement.save();
@@ -98,7 +98,7 @@ const updateInternshipApplicationStatus = async (req, res) => {
 
     const { applicationId } = req.params;
     const { status } = req.body;
-
+    console.log(applicationId.status);
     // Check if the internship application exists
     const internshipApplication = await InternshipApplication.findById(applicationId);
     if (!internshipApplication) {

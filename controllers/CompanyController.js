@@ -1,9 +1,11 @@
 const Company = require('../models/company');
+const Internship = require('../models/internship');
+const bcrypt = require('bcrypt');
 
 // Controller for creating a company
 const createCompany = async (req, res) => {
   try {
-    const { firmname, sector, location, contact, username, email, password, workAreas } = req.body;
+    const { firmname, sector, location, contact, employeeNum, email, password, workAreas } = req.body;
 
     // Check if a company with the given email already exists
     const existingCompany = await Company.findOne({ companyName: email });
@@ -18,9 +20,9 @@ const createCompany = async (req, res) => {
       location,
       contactNumber: contact,
       password,
-      username,
       email,
-      workAreas
+      workAreas,
+      employeeNum
     });
 
     // Save the company to the database
@@ -81,17 +83,19 @@ const updateCompanyById = async (req, res) => {
 const changePassword = async (req, res) => {
   const { companyId } = req.params;
   const { currentPassword, newPassword } = req.body;
-
+  console.log(companyId);
+  console.log(currentPassword,newPassword);
   try {
     // Find the user by ID
     const company = await Company.findById(companyId);
 
-    // Verify if the current password matches the stored password
-    if (company.password !== currentPassword) {
+    // Verify if the current password matches the stored password using bcrypt
+    const passwordMatch = await bcrypt.compare(currentPassword, company.password);
+    if (!passwordMatch) {
       return res.status(400).json({ error: 'Current password is incorrect' });
     }
 
-    
+
     // Update the password
     company.password = newPassword;
 
@@ -124,13 +128,25 @@ async function getInternshipsForCompany(req, res) {
   const companyId = req.params.companyId;
 
   try {
-    const internships = await Internship.find({ company: companyId }).populate('student').populate('supervisor');
+    const internships = await Internship.find({ company: companyId })
+      .populate({
+        path: "student",
+        select: "name surname",
+      })
+      .select("student startDate endDate internshipBook evaluationForm status internshipBookStatus")
+      .lean(); // Convert Mongoose documents to plain JavaScript objects
+
     res.json(internships);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Failed to retrieve internships for the company' });
+    res
+      .status(500)
+      .json({ message: "Failed to retrieve internships for the company" });
   }
 }
+
+
+
 
 module.exports = {
   createCompany,
